@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Video Analysis Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .process-table {
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        .process-table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #1a1a1a;
+            z-index: 1;
+        }
+        .modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Video Player Section -->
+            <div class="space-y-4">
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-sm font-medium">Upload Video</label>
+                            <h1 class="text-xl font-bold text-blue-400">Aplikasi Analisa TVP YIMM HO</h1>
+                        </div>
+                        <input type="file" id="videoUpload" accept="video/*" 
+                               class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="relative aspect-video bg-black rounded-lg overflow-hidden">
+                        <video id="videoPlayer" class="w-full h-full">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    <!-- Video Controls -->
+                    <div class="mt-4 space-y-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div id="progressBar" class="bg-blue-500 h-full w-0"></div>
+                            </div>
+                            <span id="timeDisplay" class="text-sm min-w-[80px]">0:00 / 0:00</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button id="playBtn" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition">
+                                <i class="fas fa-play"></i> Play
+                            </button>
+                            <button id="pauseBtn" class="px-4 py-2 bg-yellow-600 rounded hover:bg-yellow-700 transition">
+                                <i class="fas fa-pause"></i> Pause
+                            </button>
+                            <button id="continueBtn" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition hidden">
+                                <i class="fas fa-forward"></i> Continue
+                            </button>
+                            <button id="stopBtn" class="px-4 py-2 bg-red-600 rounded hover:bg-red-700 transition">
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                            <button id="resumeBtn" class="px-4 py-2 bg-purple-600 rounded hover:bg-purple-700 transition hidden">
+                                <i class="fas fa-redo"></i> Resume
+                            </button>
+                            <div class="flex items-center space-x-2">
+                                <button id="decreaseSpeed" class="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 transition">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span id="speedDisplay" class="min-w-[60px] text-center">1x</span>
+                                <button id="increaseSpeed" class="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 transition">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Process Table Section -->
+            <div class="bg-gray-800 p-4 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Process Analysis</h2>
+                    <button id="exportBtn" class="px-4 py-2 bg-green-600 rounded hover:bg-green-700 transition">
+                        <i class="fas fa-file-excel"></i> Export to Excel
+                    </button>
+                </div>
+                <div class="process-table">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="text-left">
+                                <th class="p-2">No</th>
+                                <th class="p-2">Process Detail</th>
+                                <th class="p-2">Time (s)</th>
+                                <th class="p-2">Time (dm)</th>
+                                <th class="p-2">Work Type</th>
+                                <th class="p-2">Status</th>
+                                <th class="p-2">Category</th>
+                            </tr>
+                        </thead>
+                        <tbody id="processTableBody">
+                            <!-- Table rows will be added here dynamically -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="font-semibold">
+                                <td colspan="2" class="p-2">Total Time:</td>
+                                <td id="totalSeconds" class="p-2">0</td>
+                    <td id="totalDM" class="p-2">0</td>
+                    <td></td>
+                    <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <!-- Chart Section -->
+                <!-- Removed TV Chart Analyze section -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Process Input Modal -->
+    <div id="processModal" class="modal fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-4">Add Process Details</h3>
+            <form id="processForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Process Detail</label>
+                    <input type="text" id="processDetail" required
+                           class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Work Type</label>
+                    <select id="workType" required
+                            class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:outline-none focus:border-blue-500">
+                        <option value="Man">Man</option>
+                        <option value="Machine">Machine</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Status</label>
+                    <select id="status" required
+                            class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:outline-none focus:border-blue-500">
+                        <option value="Value">Value</option>
+                        <option value="Semi Value">Semi Value</option>
+                        <option value="Check">Check</option>
+                        <option value="Non Value">Non Value</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Category</label>
+                    <select id="category" required
+                            class="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:outline-none focus:border-blue-500">
+                        <option value="OK">OK</option>
+                        <option value="Improve">Improve</option>
+                        <option value="Buang">Buang</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="cancelProcess"
+                            class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700 transition">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition">
+                        Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize variables
+        let video = document.getElementById('videoPlayer');
+        let processData = [];
+        let lastPauseTime = 0;
+
+        // Video upload handling
+        document.getElementById('videoUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const videoUrl = URL.createObjectURL(file);
+                video.src = videoUrl;
+                video.load();
+            }
+        });
+
+        // Video controls
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const continueBtn = document.getElementById('continueBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const progressBar = document.getElementById('progressBar');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const speedDisplay = document.getElementById('speedDisplay');
+        const processModal = document.getElementById('processModal');
+
+        // Play button
+        playBtn.addEventListener('click', () => {
+            video.play();
+            playBtn.classList.add('hidden');
+            pauseBtn.classList.remove('hidden');
+            continueBtn.classList.add('hidden');
+        });
+
+        // Pause button
+        pauseBtn.addEventListener('click', () => {
+            video.pause();
+            pauseBtn.classList.add('hidden');
+            continueBtn.classList.remove('hidden');
+            showProcessModal();
+        });
+
+        // Continue button
+        continueBtn.addEventListener('click', () => {
+            video.play();
+            continueBtn.classList.add('hidden');
+            pauseBtn.classList.remove('hidden');
+        });
+
+        // Update button visibility on video events
+        video.addEventListener('play', () => {
+            playBtn.classList.add('hidden');
+            pauseBtn.classList.remove('hidden');
+            continueBtn.classList.add('hidden');
+        });
+
+        video.addEventListener('pause', () => {
+            playBtn.classList.remove('hidden');
+            pauseBtn.classList.add('hidden');
+        });
+
+        video.addEventListener('ended', () => {
+            playBtn.classList.remove('hidden');
+            pauseBtn.classList.add('hidden');
+            continueBtn.classList.add('hidden');
+        });
+
+        // Stop
+        let lastStopTime = 0;
+
+        stopBtn.addEventListener('click', () => {
+            lastStopTime = video.currentTime;
+            video.pause();
+            video.currentTime = 0;
+            playBtn.classList.add('hidden');
+            pauseBtn.classList.add('hidden');
+            continueBtn.classList.add('hidden');
+            resumeBtn.classList.remove('hidden');
+        });
+
+        const resumeBtn = document.getElementById('resumeBtn');
+        resumeBtn.addEventListener('click', () => {
+            video.currentTime = lastStopTime;
+            video.play();
+            resumeBtn.classList.add('hidden');
+            pauseBtn.classList.remove('hidden');
+        });
+
+        // Speed control
+        document.getElementById('decreaseSpeed').addEventListener('click', () => {
+            video.playbackRate = Math.max(0.1, video.playbackRate - 0.1);
+            updateSpeedDisplay();
+        });
+
+        document.getElementById('increaseSpeed').addEventListener('click', () => {
+            video.playbackRate = Math.min(10, video.playbackRate + 0.1);
+            updateSpeedDisplay();
+        });
+
+        function updateSpeedDisplay() {
+            speedDisplay.textContent = video.playbackRate.toFixed(1) + 'x';
+        }
+
+        // Progress bar and time display
+        video.addEventListener('timeupdate', () => {
+            const progress = (video.currentTime / video.duration) * 100;
+            progressBar.style.width = progress + '%';
+            
+            const currentTime = formatTime(video.currentTime);
+            const duration = formatTime(video.duration);
+            timeDisplay.textContent = `${currentTime} / ${duration}`;
+        });
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            seconds = Math.floor(seconds % 60);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Process modal handling
+        function showProcessModal() {
+            processModal.classList.remove('hidden');
+            processModal.classList.add('flex');
+            lastPauseTime = video.currentTime;
+        }
+
+        document.getElementById('cancelProcess').addEventListener('click', () => {
+            processModal.classList.add('hidden');
+            processModal.classList.remove('flex');
+            video.play();
+        });
+
+        // Process form handling
+        document.getElementById('processForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const processDetail = document.getElementById('processDetail').value;
+            const workType = document.getElementById('workType').value;
+            const status = document.getElementById('status').value;
+            const category = document.getElementById('category').value;
+
+            addProcess({
+                processDetail,
+                workType,
+                status,
+                category,
+                time: lastPauseTime
+            });
+
+            processModal.classList.add('hidden');
+            processModal.classList.remove('flex');
+            document.getElementById('processForm').reset();
+            
+            // Show continue button instead of automatically playing
+            playBtn.classList.add('hidden');
+            pauseBtn.classList.add('hidden');
+            continueBtn.classList.remove('hidden');
+        });
+
+        // Process table handling
+        function addProcess(process) {
+            processData.push(process);
+            updateProcessTable();
+        }
+
+        function updateProcessTable() {
+            const tbody = document.getElementById('processTableBody');
+            tbody.innerHTML = '';
+            
+            let totalSeconds = 0;
+            
+            processData.forEach((process, index) => {
+                const row = document.createElement('tr');
+                const timeInSeconds = index === 0 ? 
+                    process.time : 
+                    process.time - processData[index - 1].time;
+                
+                totalSeconds += timeInSeconds;
+                
+                row.innerHTML = `
+                    <td class="p-2">${index + 1}</td>
+                    <td class="p-2">${process.processDetail}</td>
+                    <td class="p-2">${timeInSeconds.toFixed(2)}</td>
+                    <td class="p-2">${(timeInSeconds * 0.6).toFixed(2)}</td>
+                    <td class="p-2">${process.workType}</td>
+                    <td class="p-2">${process.status}</td>
+                    <td class="p-2">${process.category}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+
+            // Update totals
+            document.getElementById('totalSeconds').textContent = totalSeconds.toFixed(2);
+            document.getElementById('totalDM').textContent = (totalSeconds * 0.6).toFixed(2);
+        }
+
+        // Progress bar click handling
+        progressBar.parentElement.addEventListener('click', (e) => {
+            const rect = progressBar.parentElement.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            video.currentTime = pos * video.duration;
+        });
+
+        // Export to Excel functionality
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            // Create CSV content
+            let csvContent = 'No,Process Detail,Time (s),Time (dm),Work Type,Status,Category\n';
+            
+            processData.forEach((process, index) => {
+                const timeInSeconds = index === 0 ? 
+                    process.time : 
+                    process.time - processData[index - 1].time;
+                const timeInDM = (timeInSeconds * 0.6).toFixed(2);
+                
+                csvContent += `${index + 1},${process.processDetail},${timeInSeconds.toFixed(2)},${timeInDM},${process.workType},${process.status},${process.category}\n`;
+            });
+
+            // Add total row
+            const totalSeconds = processData.reduce((total, process, index) => {
+                const timeInSeconds = index === 0 ? 
+                    process.time : 
+                    process.time - processData[index - 1].time;
+                return total + timeInSeconds;
+            }, 0);
+            
+            csvContent += `\nTotal,,${totalSeconds.toFixed(2)},${(totalSeconds * 0.6).toFixed(2)},,,\n`;
+
+            // Create and trigger download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'process_analysis.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Chart initialization
+        // Removed TV Chart Analyze JavaScript code
+    </script>
+</body>
+</html>
